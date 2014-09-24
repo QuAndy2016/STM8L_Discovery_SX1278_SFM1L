@@ -1,0 +1,17 @@
++-----------------------------------------------------------------------------+
+|          SFM-1L Semtech SX1278 firmware for STM8S003						  |
++-----------------------------------------------------------------------------+
+
+This firmware currently supports the following Semtech LoRa product:
+	- SX1278
+		- LoRa modem (application default)
+
+1. Introduction
+-------------------------------------------------------------------------------
+
+SFM-1L is a LoRa module made by China. It is embedded with Semtech SX1278 LoRa chip. It still needs external MCU. So in this project I ported the LoRa radio driver onto STM8L-Discovery.  	
+
+2. Version history
+-------------------------------------------------------------------------------
+
+<1.0.0> - This is original project from STM which SX1278 radio driver is not ported.
