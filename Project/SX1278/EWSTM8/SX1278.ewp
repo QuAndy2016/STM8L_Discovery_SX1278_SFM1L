@@ -598,7 +598,7 @@
         </option>
         <option>
           <name>IlinkIcfFile</name>
-          <state>$TOOLKIT_DIR$\config\lnkstm8.icf</state>
+          <state>$TOOLKIT_DIR$\config\lnkstm8l152c6.icf</state>
         </option>
         <option>
           <name>IlinkIcfFileSlave</name>
@@ -1756,6 +1756,12 @@
       <file>
         <name>$PROJ_DIR$\..\inc\stm8l15x_it.h</name>
       </file>
+      <file>
+        <name>$PROJ_DIR$\..\inc\sx1276.h</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\inc\task.h</name>
+      </file>
     </group>
     <group>
       <name>src</name>
@@ -1764,6 +1770,12 @@
       </file>
       <file>
         <name>$PROJ_DIR$\..\src\stm8l15x_it.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\src\sx1276.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\..\src\task.c</name>
       </file>
     </group>
   </group>
