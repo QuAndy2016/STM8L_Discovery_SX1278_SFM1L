@@ -20,17 +20,19 @@
 	
 /* Includes ------------------------------------------------------------------*/
 #include "stm8l15x.h"
+#include "stm8l15x_clk.h"
+#include "task.h"
+#include "sx1276.h"
 
-#define FIRMWARE_VERSION        1.0.0
 
-/** @addtogroup Template
-  * @{
-  */
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+#define FIRMWARE_VERSION        3.0.0
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+static tRadioDriver *p_radio = 0;
+static tTaskInstance *p_task = 0;
 /* Private function prototypes -----------------------------------------------*/
 
 /* Private functions ---------------------------------------------------------*/
@@ -42,9 +44,24 @@
   */
 void main(void)
 {
+  disableInterrupts();
+  
+  CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_HSI);
+  CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_1);
+    
+  p_radio = RadioDriverInit( );  
+  p_radio->Init( );
+  p_radio->StartRx( );
+  
+  p_task = task_init();
+  p_task->p_device1 = p_radio;
+  
+  enableInterrupts();
+  
   /* Infinite loop */
   while (1)
   {
+    task_exec(p_task);
   }
 }
 
