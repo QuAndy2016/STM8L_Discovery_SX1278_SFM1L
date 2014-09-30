@@ -11,10 +11,8 @@
 ******************************************************************************/
 #include "stm8l15x.h"
 #include "sx1276.h"
+#include "board.h"
 #include "task.h"
-#include "stm8l15x_gpio.h"
-#include "stm8l15x_usart.h"
-#include "stm8l15x_clk.h"
 
 // used with UU16
 #define LSB 1
@@ -78,6 +76,7 @@ static void send_char_com(unsigned char UtxData)
   USART1->CR2 &= ~0x08;
 }
 
+#if 0
 static void Uart_Prints(unsigned char *pd)
 {
   while((*pd)!='\0')
@@ -85,6 +84,7 @@ static void Uart_Prints(unsigned char *pd)
     send_char_com(*pd++);
   }
 }
+#endif
 
 static void Uart_Prints2(unsigned char *pd, uint16_t len)
 {
@@ -216,25 +216,6 @@ tTaskInstance* task_init(void)
 {
   uint8_t i;
   
-  /* UART init */
-  CLK_PeripheralClockConfig(CLK_Peripheral_USART1,ENABLE);
-  /* Enable receiver interrupt */
-  USART1->CR2 = 0x24;
-  USART1->SR = 0;
-  USART1->CR1 = 0;
-  USART1->CR3 = 0;   
-  // baud rate 115200
-  //UART1_BRR1 = 0x08; 
-  //UART1_BRR2 = 0x0B;
-  // baud rate 9600
-  USART1->BRR1 = 0x68; 
-  USART1->BRR2 = 0x03;
-  
-  /* LD4 LED blue */
-  GPIO_Init(GPIOC, GPIO_Pin_7, GPIO_Mode_Out_PP_High_Fast);
-  /* LD3 LED green */
-  GPIO_Init(GPIOE, GPIO_Pin_7, GPIO_Mode_Out_PP_High_Fast);
-  
   for(i=0;i<INPUT_BUFFER_SIZE;i++)
   {
     input_buffer[i] = 0;
@@ -279,7 +260,7 @@ void task_exec(tTaskInstance *task)
   /* If yes, then decode the message */
   /* If no, then discard the buffer if max buffer size reach */
   /* Otherwise, wait for CR */
-  if(input_buffer[total_input_char_number-1] == '\r')
+  if((total_input_char_number >0) && (input_buffer[total_input_char_number-1] == '\r'))
   {
     //Uart_Prints2(input_buffer, total_input_char_number);
     
@@ -287,12 +268,9 @@ void task_exec(tTaskInstance *task)
     
     discard_input_buffer();
   }
-  else
+  else if(total_input_char_number == INPUT_BUFFER_SIZE)
   {
-    if(total_input_char_number == INPUT_BUFFER_SIZE)
-    {
       discard_input_buffer();
-    }
   }
   enableInterrupts();
   
@@ -303,10 +281,12 @@ void task_exec(tTaskInstance *task)
     case RF_RX_DONE:
         radio->GetRxPacket( gb_RxData, ( uint16_t * )&packageSize );
         
-        GPIO_ToggleBits(GPIOC, GPIO_Pin_7);
+        LoRaRX_Indicate();
           
         //PER_Proc();
         Uart_Prints2(gb_RxData, packageSize);
+        
+        radio->SetTxPacket(gb_RxData, packageSize);
         break;
     case RF_TX_DONE:
         radio->StartRx( );

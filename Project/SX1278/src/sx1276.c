@@ -10,9 +10,12 @@
 
 ******************************************************************************/
 #include <string.h>
-#include "sx1276.h"
-#include "stm8l15x.h"
 #include "stm8l15x_gpio.h"
+#include "stm8l15x_spi.h"
+#include "stm8l15x_clk.h"
+#include "stm8l15x_syscfg.h"
+#include "stm8l15x.h"
+#include "sx1276.h"
 
 static void SX1276InitIo( void );
 static void SX1276Init( void );
@@ -50,7 +53,7 @@ static uint32_t SX1276LoRaProcess( void );
 static void SX1276LoRaSetRFFrequency( uint32_t freq );
 static void SX1276WriteRxTx( uint8_t txEnable );
 
-#define YOSUN_SPI_DRIVER // Otherwise, SPI driver from STM lib would be used
+//#define STM8_SOFT_SPI // Otherwise, SPI driver from STM lib would be used
 
 #define GET_TICK_COUNT( )                           ( TickCounter )
 
@@ -230,111 +233,9 @@ static tLoRaSettings LoRaSettings =
  */
 static uint16_t TxPacketSize = 0;
 
-#ifdef YOSUN_SPI_DRIVER
-/*uint8_t SPI_read(uint8_t addr)
-{
-  uint8_t i = 0;
-  uint8_t tmp = addr;
-  
-  GPIO_WriteLow(SPI_NSS_PORT, SPI_NSS_PIN);
-  GPIO_WriteLow(SPI_SCK_PORT, SPI_SCK_PIN);
-  
-  for(i=8;i!=0;i--)
-  {
-    GPIO_WriteLow(SPI_SCK_PORT, SPI_SCK_PIN);
-    if(tmp & 0x80)
-    {
-      GPIO_WriteHigh(SPI_MOSI_PORT, SPI_MOSI_PIN);
-    }
-    else
-    {
-      GPIO_WriteLow(SPI_MOSI_PORT, SPI_MOSI_PIN);
-    }
-    asm("nop");
-    asm("nop");
-    GPIO_WriteHigh(SPI_SCK_PORT, SPI_SCK_PIN);
-    asm("nop");
-    tmp <<= 1;
-  }
-  
-  GPIO_WriteLow(SPI_SCK_PORT, SPI_SCK_PIN);
-  GPIO_WriteHigh(SPI_MOSI_PORT, SPI_MOSI_PIN);
-  
-  GPIO_WriteLow(SPI_NSS_PORT, SPI_NSS_PIN);
-  GPIO_WriteHigh(SPI_MOSI_PORT, SPI_MOSI_PIN);
-  
-  tmp = 0;
-  for(i=8;i!=0;i--)
-  {
-    GPIO_WriteLow(SPI_SCK_PORT, SPI_SCK_PIN);
-    asm("nop");
-    asm("nop");
-    tmp <<= 1;
-    GPIO_WriteHigh(SPI_SCK_PORT, SPI_SCK_PIN);
-    if(GPIO_ReadInputPin(SPI_MISO_PORT, SPI_MISO_PIN))
-    {
-      tmp |= 0x01;
-    }
-    else
-    {
-      tmp |= 0x00;
-    }
-  }
-  GPIO_WriteLow(SPI_SCK_PORT, SPI_SCK_PIN);
-  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
-  
-  return tmp;
-}
+static uint8_t maliyu = 0xFF;
 
-void SPI_write(uint8_t addr, uint8_t data)
-{
-  uint8_t tmp = addr;
-  uint8_t i;
-  
-  GPIO_WriteLow(SPI_SCK_PORT, SPI_SCK_PIN);
-  GPIO_WriteLow(SPI_NSS_PORT, SPI_NSS_PIN);
-  
-  tmp |= 0x80;
-  for(i=8;i!=0;i--)
-  {
-    GPIO_WriteLow(SPI_SCK_PORT, SPI_SCK_PIN);
-    asm("nop");
-    asm("nop");
-    if(tmp&0x80)
-    {
-      GPIO_WriteHigh(SPI_MOSI_PORT, SPI_MOSI_PIN);
-    }
-    else
-    {
-      GPIO_WriteLow(SPI_MOSI_PORT, SPI_MOSI_PIN);
-    }
-    GPIO_WriteHigh(SPI_SCK_PORT, SPI_SCK_PIN);
-    tmp <<= 1;
-  }
-  
-  tmp = data;
-  for(i=8;i!=0;i--)
-  {
-    GPIO_WriteLow(SPI_SCK_PORT, SPI_SCK_PIN);
-    asm("nop");
-    asm("nop");
-    if(tmp&0x80)
-    {
-      GPIO_WriteHigh(SPI_MOSI_PORT, SPI_MOSI_PIN);
-    }
-    else
-    {
-      GPIO_WriteLow(SPI_MOSI_PORT, SPI_MOSI_PIN);
-    }
-    GPIO_WriteHigh(SPI_SCK_PORT, SPI_SCK_PIN);
-    tmp <<= 1;
-  }
-  
-  GPIO_WriteLow(SPI_SCK_PORT, SPI_SCK_PIN);
-  GPIO_WriteHigh(SPI_MOSI_PORT, SPI_MOSI_PIN);
-  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
-}*/
-
+#ifdef STM8_SOFT_SPI
 void SPI_write(uint8_t addr, uint8_t *p_data, uint8_t length)
 {
   uint8_t tmp = addr | 0x80;
@@ -454,55 +355,53 @@ void SPI_read(uint8_t addr, uint8_t *p_data, uint8_t length)
 }
 #else // SPI driver from STM lib
 void SPI_read(uint8_t addr, uint8_t *p_data, uint8_t length)
-{
-  /*uint8_t tmp;
+{  
+  if(length <= 0)
+  {
+    return;
+  }
   
   GPIO_WriteLow(SPI_NSS_PORT, SPI_NSS_PIN);
-  while(SPI_GetFlagStatus(SPI_FLAG_TXE) == RESET)
-  {
-    asm("nop");
-  }
-  SPI_SendData(addr);
-  SPI_ReceiveData();
-  while(SPI_GetFlagStatus(SPI_FLAG_RXNE) == SET)
-  {
-    asm("nop");
-  }
-  SPI_SendData(0xFF);
-  tmp = SPI_ReceiveData();
-  while(SPI_GetFlagStatus(SPI_FLAG_RXNE) == SET)
-  {
-    asm("nop");
-  }
-  //delay_ms(1);
-  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
   
-  return tmp;*/
+  while((SPI1->SR & SPI_FLAG_TXE) == RESET);
+  SPI1->DR = addr;
+  while((SPI1->SR & SPI_FLAG_RXNE) == RESET);
+  (void)SPI1->DR;
+  
+  while(length--)
+  {
+    while((SPI1->SR & SPI_FLAG_TXE) == RESET);
+    SPI1->DR = 0xFF;
+    while((SPI1->SR & SPI_FLAG_RXNE) == RESET);
+    *(p_data++) = SPI1->DR;
+  }
+  
+  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
 }
 
 void SPI_write(uint8_t addr, uint8_t *p_data, uint8_t length)
 {
-  /*uint8_t data_h = addr | 0x80;
-  uint8_t data_l = data;
+  if(length <= 0)
+  {
+    return;
+  }
   
   GPIO_WriteLow(SPI_NSS_PORT, SPI_NSS_PIN);
-  while(SPI_GetFlagStatus(SPI_FLAG_TXE) == RESET)
+  
+  while((SPI1->SR & SPI_FLAG_TXE) == RESET);
+  SPI1->DR = (addr | 0x80);
+  while((SPI1->SR & SPI_FLAG_RXNE) == RESET);
+  (void)SPI1->DR;
+  
+  while(length--)
   {
-    asm("nop");
+    while((SPI1->SR & SPI_FLAG_TXE) == RESET);
+    SPI1->DR = *p_data++;
+    while((SPI1->SR & SPI_FLAG_RXNE) == RESET);
+    (void)SPI1->DR;
   }
-  SPI_SendData(data_h);
-  SPI_ReceiveData();
-  while(SPI_GetFlagStatus(SPI_FLAG_RXNE) == SET)
-  {
-    asm("nop");
-  }
-  SPI_SendData(data_l);
-  SPI_ReceiveData();
-  while(SPI_GetFlagStatus(SPI_FLAG_RXNE) == SET)
-  {
-    asm("nop");
-  }
-  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);*/
+  
+  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
 }
 #endif
 
@@ -540,28 +439,36 @@ static void SX1276InitIo( void )
   /* Configure Dio5 as input pull-up (LoRa software configurated) */
   GPIO_Init(DIO5_PORT, DIO5_PIN, GPIO_Mode_In_PU_No_IT);
 
-#ifdef YOSUN_SPI_DRIVER
+  /* Configure SPI_NSS as output push-pull low */
+  GPIO_Init(SPI_NSS_PORT, SPI_NSS_PIN, GPIO_Mode_Out_PP_High_Fast);
+  //GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
+  //delay_ms(1);
+  
+  /* Initialize SPI */
+#ifdef STM8_SOFT_SPI
   /* Configure SPI_SCK as output push-pull low */
   GPIO_Init(SPI_SCK_PORT, SPI_SCK_PIN, GPIO_Mode_Out_PP_Low_Fast);
   /* Configure SPI_MOSI as output push-pull low */
   GPIO_Init(SPI_MOSI_PORT, SPI_MOSI_PIN, GPIO_Mode_Out_PP_Low_Fast);
   /* Configure SPI_MISO as input pull-up */
   GPIO_Init(SPI_MISO_PORT, SPI_MISO_PIN, GPIO_Mode_In_PU_No_IT);
+#else
+  //SPI_DeInit(SPI1);
+  //SYSCFG_REMAPDeInit();
+  //SYSCFG_REMAPPinConfig(REMAP_Pin_SPI1Full, DISABLE);
+  SPI_Cmd(SPI1, DISABLE);
+  CLK_PeripheralClockConfig(CLK_Peripheral_SPI1, DISABLE);
+  GPIO_Init(SPI_SCK_PORT, SPI_SCK_PIN, GPIO_Mode_In_FL_No_IT);
+  GPIO_Init(SPI_MOSI_PORT, SPI_MOSI_PIN, GPIO_Mode_In_FL_No_IT);
+  GPIO_Init(SPI_MISO_PORT, SPI_MISO_PIN, GPIO_Mode_In_FL_No_IT);
+  CLK_PeripheralClockConfig(CLK_Peripheral_SPI1, ENABLE);
+  GPIO_ExternalPullUpConfig(SPI_SCK_PORT, SPI_SCK_PIN|SPI_MOSI_PIN|SPI_MISO_PIN, ENABLE);
+  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
+  SPI_Init(SPI1, SPI_FirstBit_MSB, SPI_BaudRatePrescaler_2, SPI_Mode_Master, SPI_CPOL_Low, SPI_CPHA_1Edge, SPI_Direction_2Lines_FullDuplex, SPI_NSS_Soft, 0x07);
+  SPI_Cmd(SPI1, ENABLE);
 #endif
   
-  /* Initialize SPI */
-#ifndef YOSUN_SPI_DRIVER
-  SPI_DeInit();
-  //CLK_PeripheralClockConfig(CLK_PERIPHERAL_SPI, ENABLE);
-  //SPI_Init(SPI_FIRSTBIT_MSB, SPI_BAUDRATEPRESCALER_8, SPI_MODE_MASTER, SPI_CLOCKPOLARITY_LOW, SPI_CLOCKPHASE_1EDGE, SPI_DATADIRECTION_2LINES_FULLDUPLEX, SPI_NSS_SOFT, 0x07);
-  SPI_Init(SPI_FIRSTBIT_MSB, SPI_BAUDRATEPRESCALER_256, SPI_MODE_MASTER, SPI_CLOCKPOLARITY_LOW, SPI_CLOCKPHASE_1EDGE, SPI_DATADIRECTION_2LINES_FULLDUPLEX, SPI_NSS_SOFT, 0x07);
-  SPI_Cmd(ENABLE);
-#endif
   
-  /* Configure SPI_NSS as output push-pull low */
-  GPIO_Init(SPI_NSS_PORT, SPI_NSS_PIN, GPIO_Mode_Out_PP_High_Fast);
-  //GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
-  delay_ms(1);
 }
 
 static void SX1276SetLoRaOn( void )

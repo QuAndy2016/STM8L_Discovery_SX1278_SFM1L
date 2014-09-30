@@ -20,15 +20,14 @@
 	
 /* Includes ------------------------------------------------------------------*/
 #include "stm8l15x.h"
-#include "stm8l15x_clk.h"
 #include "task.h"
 #include "sx1276.h"
-
+#include "board.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define FIRMWARE_VERSION        3.0.0
+#define FIRMWARE_VERSION        3.1.0
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 static tRadioDriver *p_radio = 0;
@@ -46,9 +45,8 @@ void main(void)
 {
   disableInterrupts();
   
-  CLK_SYSCLKSourceConfig(CLK_SYSCLKSource_HSI);
-  CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_1);
-    
+  board_init();
+  
   p_radio = RadioDriverInit( );  
   p_radio->Init( );
   p_radio->StartRx( );

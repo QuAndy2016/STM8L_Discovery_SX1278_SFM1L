@@ -1,4 +1,4 @@
-"D:\Work\maliyu\MCU\STM\STM8Lxxx\Development\STM8L_Discovery_SX1278_SFM1L\Libraries\STM8L15x_StdPeriph_Driver\src\stm8l15x_wwdg.c"
+"D:\Work\maliyu\MCU\STM\STM8Lxxx\Development\STM8L_Discovery_SX1278_SFM1L\Project\SX1278\src\board.c"
 -std=c99
 -ferror-limit=100
 -I

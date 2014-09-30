@@ -1,6 +1,6 @@
 /******************************************************************************
  * Project        : STM8L_Discovery_SX1278_SFM1L
- * File           : task.h
+ * File           : board.h
  * Copyright      : 2014 Yosun Singapore Pte Ltd
  ******************************************************************************
   Change History:
@@ -9,18 +9,9 @@
     > Initial revision
 
 ******************************************************************************/
-#ifndef _TASK_H_
-#define _TASK_H_
+#ifndef _BOARD_H_
+#define _BOARD_H_
 
-typedef struct sTaskInstance
-{
-  void *p_device1;      // SX1278 related
-  void *p_board;        // MCU pheripheral related
-  void *p_data;
-  void *p_dataLen;
-}tTaskInstance;
-
-tTaskInstance* task_init(void);
-void task_exec(tTaskInstance *task);
-
-#endif /* _TASK_H_ */
+void board_init(void);
+void LoRaRX_Indicate(void);
+#endif /* _BOARD_H_ */
