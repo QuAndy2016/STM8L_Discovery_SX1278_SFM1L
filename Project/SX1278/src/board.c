@@ -11,9 +11,9 @@
 ******************************************************************************/
 #if defined(STM8S003)
 #include "stm8s.h"
-#include "stm8s_clk.h"
-#include "stm8s_gpio.h"
-#include "stm8s_uart1.h"
+//#include "stm8s_clk.h"
+//#include "stm8s_gpio.h"
+//#include "stm8s_uart1.h"
 #elif defined(STM8L15X_MD)
 #include "stm8l15x.h"
 #include "stm8l15x_clk.h"
@@ -28,7 +28,19 @@ void board_init(void)
   CLK_SYSCLKConfig(CLK_PRESCALER_HSIDIV1);
   CLK_SYSCLKConfig(CLK_PRESCALER_CPUDIV1);
   
-  /* UART init */          
+  /* f_ck_cnt = 16Mhz/16 = 1MHz */
+  /* count up mode */
+  /* 1000/1MHz = 1ms */
+  TIM1_TimeBaseInit(15, TIM1_COUNTERMODE_UP, 999, 0);
+  TIM1_SetCounter(0);
+  TIM1_ARRPreloadConfig(DISABLE);
+  TIM1_ITConfig(TIM1_IT_UPDATE, ENABLE);
+  TIM1_Cmd(ENABLE);
+  
+  /* UART init */    
+  CLK_PeripheralClockConfig(CLK_PERIPHERAL_UART1, ENABLE);
+  GPIO_ExternalPullUpConfig(GPIOD, GPIO_PIN_5, ENABLE);
+  GPIO_ExternalPullUpConfig(GPIOD, GPIO_PIN_6, ENABLE);
   UART1->CR2 = 0x24;
   UART1->SR = 0;
   UART1->CR1 = 0;
@@ -51,7 +63,8 @@ void board_init(void)
   
   /* UART init */
   CLK_PeripheralClockConfig(CLK_Peripheral_USART1,ENABLE);
-  GPIO_ExternalPullUpConfig(GPIOC, GPIO_Pin_2|GPIO_Pin_3, ENABLE);
+  GPIO_ExternalPullUpConfig(GPIOC, GPIO_Pin_2, ENABLE);
+  GPIO_ExternalPullUpConfig(GPIOC, GPIO_Pin_3, ENABLE);
   /* Enable receiver interrupt */
   USART1->CR2 = 0x24;
   USART1->SR = 0;

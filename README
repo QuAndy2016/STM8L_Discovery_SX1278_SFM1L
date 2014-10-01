@@ -25,3 +25,7 @@ SFM-1L is a LoRa module made by China. It is embedded with Semtech SX1278 LoRa c
 <3.2.0> 
 - Change name of project as "STM8L152C6".
 - Increase UART baud rate to 128000.
+
+<3.3.0> 
+- Change LoRa signal bandwidth from 10.4KHz to 500KHz to improve the response time.
+- Disable some functions to save code space.
