@@ -14,8 +14,7 @@
 
 typedef struct sTaskInstance
 {
-  void *p_device1;      // SX1278 related
-  void *p_board;        // MCU pheripheral related
+  void *p_device1;
   void *p_data;
   void *p_dataLen;
 }tTaskInstance;

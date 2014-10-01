@@ -19,3 +19,9 @@ SFM-1L is a LoRa module made by China. It is embedded with Semtech SX1278 LoRa c
 <2.0.0> - Port SX1276 LoRa radio driver.
 
 <3.0.0> - Add task.c into project. So RF module can send message then another one can receive it and display it through UART.
+
+<3.1.0> - Enable hardware SPI to improve RX/TX performance. Also fix bug for task.
+
+<3.2.0> 
+- Change name of project as "STM8L152C6".
+- Increase UART baud rate to 128000.

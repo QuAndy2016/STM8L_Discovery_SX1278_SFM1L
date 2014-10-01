@@ -19,7 +19,11 @@
   */ 
 	
 /* Includes ------------------------------------------------------------------*/
+#if defined(STM8L15X_MD)
 #include "stm8l15x.h"
+#elif defined(STM8S003)
+#include "stm8s.h"
+#endif
 #include "task.h"
 #include "sx1276.h"
 #include "board.h"
@@ -27,7 +31,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define FIRMWARE_VERSION        3.1.0
+#define FIRMWARE_VERSION        3.2.0
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 static tRadioDriver *p_radio = 0;

@@ -10,11 +10,16 @@
 
 ******************************************************************************/
 #include <string.h>
+#if defined(STM8S003)
+#include "stm8s.h"
+#include "stm8s_spi.h"
+#elif defined(STM8L15X_MD)
+#include "stm8l15x.h"
 #include "stm8l15x_gpio.h"
 #include "stm8l15x_spi.h"
 #include "stm8l15x_clk.h"
 #include "stm8l15x_syscfg.h"
-#include "stm8l15x.h"
+#endif
 #include "sx1276.h"
 
 static void SX1276InitIo( void );
@@ -70,9 +75,11 @@ static void SX1276WriteRxTx( uint8_t txEnable );
 #define DIO4                                        SX1276ReadDio4( )
 #define DIO5                                        SX1276ReadDio5( )
 
+#if defined(STM8L15X_MD)
 #define GPIO_WriteLow(a, b) GPIO_WriteBit(a, b, RESET)
 #define GPIO_WriteHigh(a, b) GPIO_WriteBit(a, b, SET)
 #define GPIO_ReadInputPin(a, b) GPIO_ReadInputDataBit(a, b)
+#endif
 
 static tRadioDriver RadioDriver;
 static uint8_t SX1276Regs[0x71];
@@ -233,8 +240,6 @@ static tLoRaSettings LoRaSettings =
  */
 static uint16_t TxPacketSize = 0;
 
-static uint8_t maliyu = 0xFF;
-
 #ifdef STM8_SOFT_SPI
 void SPI_write(uint8_t addr, uint8_t *p_data, uint8_t length)
 {
@@ -360,9 +365,10 @@ void SPI_read(uint8_t addr, uint8_t *p_data, uint8_t length)
   {
     return;
   }
-  
+
+#if defined(STM8L15X_MD)
   GPIO_WriteLow(SPI_NSS_PORT, SPI_NSS_PIN);
-  
+
   while((SPI1->SR & SPI_FLAG_TXE) == RESET);
   SPI1->DR = addr;
   while((SPI1->SR & SPI_FLAG_RXNE) == RESET);
@@ -377,6 +383,24 @@ void SPI_read(uint8_t addr, uint8_t *p_data, uint8_t length)
   }
   
   GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
+#elif defined(STM8S003)
+  GPIO_WriteLow(SPI_NSS_PORT, SPI_NSS_PIN);
+
+  while((SPI->SR & SPI_FLAG_TXE) == RESET);
+  SPI->DR = addr;
+  while((SPI->SR & SPI_FLAG_RXNE) == RESET);
+  (void)SPI->DR;
+  
+  while(length--)
+  {
+    while((SPI->SR & SPI_FLAG_TXE) == RESET);
+    SPI->DR = 0xFF;
+    while((SPI->SR & SPI_FLAG_RXNE) == RESET);
+    *(p_data++) = SPI->DR;
+  }
+  
+  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);  
+#endif
 }
 
 void SPI_write(uint8_t addr, uint8_t *p_data, uint8_t length)
@@ -385,7 +409,8 @@ void SPI_write(uint8_t addr, uint8_t *p_data, uint8_t length)
   {
     return;
   }
-  
+
+#if defined(STM8L15X_MD)  
   GPIO_WriteLow(SPI_NSS_PORT, SPI_NSS_PIN);
   
   while((SPI1->SR & SPI_FLAG_TXE) == RESET);
@@ -402,6 +427,24 @@ void SPI_write(uint8_t addr, uint8_t *p_data, uint8_t length)
   }
   
   GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
+#elif defined(STM8S003)
+  GPIO_WriteLow(SPI_NSS_PORT, SPI_NSS_PIN);
+  
+  while((SPI->SR & SPI_FLAG_TXE) == RESET);
+  SPI->DR = (addr | 0x80);
+  while((SPI->SR & SPI_FLAG_RXNE) == RESET);
+  (void)SPI->DR;
+  
+  while(length--)
+  {
+    while((SPI->SR & SPI_FLAG_TXE) == RESET);
+    SPI->DR = *p_data++;
+    while((SPI->SR & SPI_FLAG_RXNE) == RESET);
+    (void)SPI->DR;
+  }
+  
+  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
+#endif
 }
 #endif
 
@@ -420,6 +463,52 @@ void delay_ms(uint16_t ms)
 
 static void SX1276InitIo( void )
 {  
+#if defined(STM8S003)  
+  /* Configure PC1 (nREST) as output push-pull low (LoRa module reset ON) */
+  GPIO_Init(nREST_PORT, nREST_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
+  
+  /* Configure PC3 (CTRL1) as output push-pull low (SW control) */
+  GPIO_Init(CTRL1_PORT, CTRL1_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
+  /* Configure PC2 (CTRL2) as output push-pull low (SW control) */
+  GPIO_Init(CTRL2_PORT, CTRL2_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
+  
+  /* Configure PB0 (Dio0) as input pull-up (LoRa software configurated) */
+  GPIO_Init(DIO0_PORT, DIO0_PIN, GPIO_MODE_IN_PU_NO_IT);
+  /* Configure PB1 (Dio1) as input pull-up (LoRa software configurated) */
+  GPIO_Init(DIO1_PORT, DIO1_PIN, GPIO_MODE_IN_PU_NO_IT);
+  /* Configure PB2 (Dio2) as input pull-up (LoRa software configurated) */
+  GPIO_Init(DIO2_PORT, DIO2_PIN, GPIO_MODE_IN_PU_NO_IT);
+  /* Configure PB3 (Dio3) as input pull-up (LoRa software configurated) */
+  GPIO_Init(DIO3_PORT, DIO3_PIN, GPIO_MODE_IN_PU_NO_IT);
+  /* Configure PB5 (Dio5) as input pull-up (LoRa software configurated) */
+  GPIO_Init(DIO5_PORT, DIO5_PIN, GPIO_MODE_IN_PU_NO_IT);
+
+  /* Configure PE5 (SPI_NSS) as output push-pull low */
+  GPIO_Init(SPI_NSS_PORT, SPI_NSS_PIN, GPIO_MODE_OUT_PP_HIGH_FAST);
+  //GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
+  //delay_ms(1);
+  
+  /* Initialize SPI */
+#ifdef STM8_SOFT_SPI
+  /* Configure PC5 (SPI_SCK) as output push-pull low */
+  GPIO_Init(SPI_SCK_PORT, SPI_SCK_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
+  /* Configure PC6 (SPI_MOSI) as output push-pull low */
+  GPIO_Init(SPI_MOSI_PORT, SPI_MOSI_PIN, GPIO_MODE_OUT_PP_LOW_FAST);
+  /* Configure PC7 (SPI_MISO) as input pull-up */
+  GPIO_Init(SPI_MISO_PORT, SPI_MISO_PIN, GPIO_MODE_IN_PU_NO_IT);
+#else
+  SPI_Cmd(DISABLE);
+  CLK_PeripheralClockConfig(CLK_PERIPHERAL_SPI, DISABLE);
+  GPIO_Init(SPI_SCK_PORT, SPI_SCK_PIN, GPIO_MODE_IN_FL_NO_IT);
+  GPIO_Init(SPI_MOSI_PORT, SPI_MOSI_PIN, GPIO_MODE_IN_FL_NO_IT);
+  GPIO_Init(SPI_MISO_PORT, SPI_MISO_PIN, GPIO_MODE_IN_FL_NO_IT);
+  CLK_PeripheralClockConfig(CLK_PERIPHERAL_SPI, ENABLE);
+  GPIO_ExternalPullUpConfig(SPI_SCK_PORT, SPI_SCK_PIN|SPI_MOSI_PIN|SPI_MISO_PIN, ENABLE);
+  GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
+  SPI_Init(SPI_FIRSTBIT_MSB, SPI_BAUDRATEPRESCALER_2, SPI_MODE_MASTER, SPI_CLOCKPOLARITY_LOW, SPI_CLOCKPHASE_1EDGE, SPI_DATADIRECTION_2LINES_FULLDUPLEX, SPI_NSS_SOFT, 0x07);
+  SPI_Cmd(ENABLE);
+#endif
+#elif defined(STM8L15X_MD)
   /* Configure nREST as output push-pull low (LoRa module reset ON) */
   GPIO_Init(nREST_PORT, nREST_PIN, GPIO_Mode_Out_PP_Low_Fast);
   
@@ -466,9 +555,8 @@ static void SX1276InitIo( void )
   GPIO_WriteHigh(SPI_NSS_PORT, SPI_NSS_PIN);
   SPI_Init(SPI1, SPI_FirstBit_MSB, SPI_BaudRatePrescaler_2, SPI_Mode_Master, SPI_CPOL_Low, SPI_CPHA_1Edge, SPI_Direction_2Lines_FullDuplex, SPI_NSS_Soft, 0x07);
   SPI_Cmd(SPI1, ENABLE);
+#endif  
 #endif
-  
-  
 }
 
 static void SX1276SetLoRaOn( void )

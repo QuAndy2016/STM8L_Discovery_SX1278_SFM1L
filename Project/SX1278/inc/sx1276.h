@@ -12,7 +12,11 @@
 #ifndef _SX1276_H_
 #define _SX1276_H_
 
+#if defined(STM8S003)
+#include "stm8s.h"
+#elif defined(STM8L15X_MD)
 #include "stm8l15x.h"
+#endif
 
 #if defined(STM8S003)
 #define nREST_PORT      GPIOC

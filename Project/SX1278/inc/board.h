@@ -14,4 +14,5 @@
 
 void board_init(void);
 void LoRaRX_Indicate(void);
+void Uart_Prints(unsigned char *p_data, int length);
 #endif /* _BOARD_H_ */
