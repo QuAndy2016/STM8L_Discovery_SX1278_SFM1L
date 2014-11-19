@@ -29,3 +29,9 @@ SFM-1L is a LoRa module made by China. It is embedded with Semtech SX1278 LoRa c
 <3.3.0> 
 - Change LoRa signal bandwidth from 10.4KHz to 500KHz to improve the response time.
 - Disable some functions to save code space.
+
+<3.4.0>
+- Add in cmd_decoder() function. It can decode the commmand from UART or RF RX.
+- Add in hostID & remoteID feature. Thus host can select/reject remote controller. Also they are hardcode in firmware. This is due to STM8 EEPROM behaviour.
+- Shift FIRMWARE_VERSION from main.c to task.h
+ 

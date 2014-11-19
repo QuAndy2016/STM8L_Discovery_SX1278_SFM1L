@@ -21,6 +21,8 @@
 /* Includes ------------------------------------------------------------------*/
 #if defined(STM8L15X_MD)
 #include "stm8l15x.h"
+#include "board.h"
+//#include "stm8l15x_flash.h"
 #elif defined(STM8S003)
 #include "stm8s.h"
 #endif
@@ -31,7 +33,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
-#define FIRMWARE_VERSION        3.3.0
+
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 static tRadioDriver *p_radio = 0;
@@ -49,7 +51,7 @@ void main(void)
 {
   disableInterrupts();
   
-  board_init();
+  Board_Init();
   
   p_radio = RadioDriverInit( );  
   p_radio->Init( );

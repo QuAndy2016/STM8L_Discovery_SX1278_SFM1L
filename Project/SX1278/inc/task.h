@@ -12,6 +12,8 @@
 #ifndef _TASK_H_
 #define _TASK_H_
 
+#define FIRMWARE_VERSION        "3.4.0"
+
 typedef struct sTaskInstance
 {
   void *p_device1;

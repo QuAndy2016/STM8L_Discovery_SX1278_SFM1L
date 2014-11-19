@@ -21,7 +21,9 @@
 #include "stm8l15x_usart.h"
 #endif
 
-void board_init(void)
+#define ISUNSIGNED(a) (a>0 && ~a>0)
+
+void Board_Init(void)
 {
 #if defined(STM8S003)
   /*Clock configuration fmaster = 16MHz*/
@@ -71,11 +73,11 @@ void board_init(void)
   USART1->CR1 = 0;
   USART1->CR3 = 0;   
   // baud rate 115200
-  USART1->BRR1 = 0x08; 
-  USART1->BRR2 = 0x0B;
+  //USART1->BRR1 = 0x08; 
+  //USART1->BRR2 = 0x0B;
   // baud rate 9600
-  //USART1->BRR1 = 0x68; 
-  //USART1->BRR2 = 0x03;
+  USART1->BRR1 = 0x68; 
+  USART1->BRR2 = 0x03;
   
   /* LD4 LED blue */
   GPIO_Init(GPIOC, GPIO_Pin_7, GPIO_Mode_Out_PP_High_Fast);
@@ -95,7 +97,12 @@ void LoRaRX_Indicate(void)
 
 void Uart_Prints(uint8_t *p_data, uint16_t length)
 {
-  if(length <= 0)
+  if(!ISUNSIGNED(length))
+  {
+    return;
+  }
+  
+  if(p_data == 0)
   {
     return;
   }
@@ -117,3 +124,48 @@ void Uart_Prints(uint8_t *p_data, uint16_t length)
 #endif
   }
 }
+
+#if 0
+void EEPROM_Write(uint16_t address, uint8_t *p_data, uint16_t len)
+{
+  if(!(ISUNSIGNED(len)))
+  {
+    return;
+  }
+  
+  if(p_data == 0)
+  {
+    return;
+  }
+  
+  //FLASH_Unlock(FLASH_MEMTYPE_DATA);
+  /* Warning: keys are reversed on data memory !!! */
+  FLASH->DUKR = 0xAE; 
+  FLASH->DUKR = 0x56;
+  //FLASH_ProgramByte(FIRMWARE_VERSION_ADDRESS, 0x55);
+  while(len--)
+  {
+    *(PointerAttr uint8_t*)(address++) = (*p_data++);
+  }
+  //FLASH_Lock(FLASH_MEMTYPE_DATA);
+  FLASH->IAPSR &= (uint8_t)(~(1<<3));
+}
+
+void EEPROM_Read(uint16_t address, uint8_t *p_data, uint16_t len)
+{
+  if(!(ISUNSIGNED(len)))
+  {
+    return;
+  }
+  
+  if(p_data == 0)
+  {
+    return;
+  }
+  
+  while(len--)
+  {
+    (*p_data++) = *(PointerAttr uint8_t*)(address++);
+  }
+}
+#endif
