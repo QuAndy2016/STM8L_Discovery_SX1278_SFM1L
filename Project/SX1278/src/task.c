@@ -13,6 +13,7 @@
 #include "stm8s.h"
 #elif defined(STM8L15X_MD)
 #include <string.h>
+#include "stm8l15x_flash.h"
 #include "stm8l15x.h"
 #endif
 #include "sx1276.h"
@@ -50,24 +51,19 @@ static uint8_t jobFlag = 0;
 static uint8_t gb_RxData[RF_BUFFER_SIZE];   
 static uint16_t packageSize = 0;
 
-tTaskInstance* task_init(void)
+static void get_eeprom(uint32_t address, uint8_t *p_result, uint8_t count)
 {
   uint8_t i;
   
-  for(i=0;i<INPUT_BUFFER_SIZE;i++)
+  if(IS_FLASH_DATA_EEPROM_ADDRESS(address) && p_result)
   {
-    input_buffer[i] = 0;
+    FLASH_Unlock(FLASH_MemType_Data);
+    for(i=0;i<count;i++)
+    {
+      p_result[i] = FLASH_ReadByte(address+i);
+    }
+    FLASH_Lock(FLASH_MemType_Data);
   }
-  
-  taskInstance.p_device1 = 0;
-  taskInstance.p_data = input_buffer;
-  taskInstance.p_dataLen = &total_input_char_number;
-  
-  //EEPROM_Read(DEVICE_PARAMETERS_ADDRESS, (unsigned char *)(&devicePara), sizeof(struct t_DeviceParameters));
-  devicePara.hostID = 1;
-  devicePara.remoteID = 1;
-  
-  return (&taskInstance);
 }
 
 static void discard_input_buffer(void)
@@ -153,17 +149,77 @@ static void cmd_decoder(uint8_t *p_cmd, uint8_t cmdLen)
         /* at+version=?                                         */
         if(cmdOptions[0] == '?')
         {
+          int i;
           uint8_t version[VERSION_MAX_SIZE+1];
           
           //memset(version, 0, VERSION_MAX_SIZE+1);
-          //EEPROM_Read(FIRMWARE_VERSION_ADDRESS, version, VERSION_MAX_SIZE);
-          memcpy(version, FIRMWARE_VERSION, VERSION_MAX_SIZE);
+          //memcpy(version, FIRMWARE_VERSION, VERSION_MAX_SIZE);
+          //FLASH_Unlock(FLASH_MemType_Data);
+          //for(i=0;i<VERSION_MAX_SIZE;i++)
+          //{
+            //version[i] = FLASH_ReadByte(FIRMWARE_VERSION_ADDRESS+i);
+          //}
+          //FLASH_Lock(FLASH_MemType_Data);
+          get_eeprom(FIRMWARE_VERSION_ADDRESS, version, VERSION_MAX_SIZE);
           version[VERSION_MAX_SIZE]= '\r';
           Uart_Prints(version, VERSION_MAX_SIZE+1);
         }
       }
+      else if(strcmp(cmdBody, "at+hostid") == 0)
+      {
+        /* at+hostid=? */
+        /* To retrieve hostID */
+        if(cmdOptions[0] == '?')
+        {
+          uint8_t response[12];
+          
+          memcpy(response, "at+hostid=", 10);
+          response[10] = devicePara.hostID;
+          response[11] = '\r';
+          Uart_Prints(response, 12);
+        }
+      }
+      else if(strcmp(cmdBody, "at+remoteid") == 0)
+      {
+        /* at+remoteid=? */
+        /* To retrieve remoteID */
+        if(cmdOptions[0] == '?')
+        {
+          uint8_t response[14];
+          
+          memcpy(response, "at+remoteid=", 12);
+          response[12] = devicePara.remoteID;
+          response[13] = '\r';
+          Uart_Prints(response, 14);
+        }
+      }
     }
   }
+}
+
+tTaskInstance* task_init(void)
+{
+  uint8_t i;
+  
+  for(i=0;i<INPUT_BUFFER_SIZE;i++)
+  {
+    input_buffer[i] = 0;
+  }
+  
+  taskInstance.p_device1 = 0;
+  taskInstance.p_data = input_buffer;
+  taskInstance.p_dataLen = &total_input_char_number;
+  
+  //EEPROM_Read(DEVICE_PARAMETERS_ADDRESS, (unsigned char *)(&devicePara), sizeof(struct t_DeviceParameters));
+  //devicePara.hostID = 1;
+  //devicePara.remoteID = 1;
+  //FLASH_Unlock(FLASH_MemType_Data);
+  //devicePara.hostID = FLASH_ReadByte(DEVICE_PARAMETERS_ADDRESS);
+  //devicePara.remoteID = FLASH_ReadByte(DEVICE_PARAMETERS_ADDRESS+1);
+  //FLASH_Lock(FLASH_MemType_Data);
+  get_eeprom(DEVICE_PARAMETERS_ADDRESS, (uint8_t *)&devicePara, sizeof(struct t_DeviceParameters));
+  
+  return (&taskInstance);
 }
 
 void task_exec(tTaskInstance *task)
@@ -250,3 +306,4 @@ void get_input(void)
 #endif
   }
 }
+
